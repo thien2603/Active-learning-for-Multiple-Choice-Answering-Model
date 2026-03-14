@@ -1,4 +1,4 @@
-# 🚀 DistilBERT Multiple Choice QA - Vietnamese Fine-Tuning Pipeline
+# 🚀 DistilBERT AND PhoBERT Multiple Choice QA - Vietnamese Fine-Tuning Pipeline
 
 Dự án này cung cấp một quy trình (pipeline) hoàn chỉnh để huấn luyện (fine-tune), đánh giá và tăng cường dữ liệu (data augmentation) cho mô hình **DistilBERT** trong bài toán **Trả lời câu hỏi trắc nghiệm (Multiple Choice QA)** bằng tiếng Việt.
 

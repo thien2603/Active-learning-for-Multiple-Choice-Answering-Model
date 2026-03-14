@@ -112,7 +112,3 @@ Cách xử lý: Script generator đã tích hợp sẵn hàm clean_json_string()
 Nguyên nhân: Xung đột thư viện transformers do chưa load lại phiên bản mới sau khi cài đặt.
 
 Cách xử lý: Vào thanh menu Colab: Runtime -> Restart session. Sau đó chạy lại ô import thư viện.
-```
-
-
-

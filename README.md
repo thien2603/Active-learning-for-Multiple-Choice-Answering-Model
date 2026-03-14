@@ -1,35 +1,45 @@
-# 🚀 DistilBERT AND PhoBERT Multiple Choice QA - Vietnamese Fine-Tuning Pipeline
+Markdown
+# 🚀 DistilBERT & PhoBERT Multiple Choice QA - Vietnamese Fine-Tuning Pipeline
 
-Dự án này cung cấp một quy trình (pipeline) hoàn chỉnh để huấn luyện (fine-tune), đánh giá và tăng cường dữ liệu (data augmentation) cho mô hình **DistilBERT** trong bài toán **Trả lời câu hỏi trắc nghiệm (Multiple Choice QA)** bằng tiếng Việt.
+Dự án này cung cấp một quy trình (pipeline) hoàn chỉnh để huấn luyện (fine-tune), đánh giá và tăng cường dữ liệu (data augmentation) cho các mô hình **DistilBERT** và **PhoBERT** trong bài toán **Trả lời câu hỏi trắc nghiệm (Multiple Choice QA)** bằng tiếng Việt.
 
-Đặc biệt, dự án bao gồm cơ chế **"Tự học từ lỗi sai" (Error-Driven Augmentation)**: Model thi thử -> Lọc ra các câu làm sai -> Dùng LLM (Groq/Llama/Kimi) sinh thêm câu hỏi tương tự từ lỗi sai -> Huấn luyện lại model (V2/Final) để vá lỗ hổng kiến thức.
+Đặc biệt, dự án bao gồm cơ chế **"Tự học từ lỗi sai" (Error-Driven Augmentation)**: Model thi thử -> Lọc ra các câu làm sai -> Dùng LLM API (Qwen/Groq/Llama) sinh thêm 4 câu hỏi tương tự từ mỗi lỗi sai -> Huấn luyện lại model theo các vòng lặp (iterative retraining) để vá lỗ hổng kiến thức.
 
 ---
 
 ## 📑 Mục lục
 1. [Tính năng nổi bật](#-tính-năng-nổi-bật)
-2. [Cấu trúc dữ liệu](#-cấu-trúc-dữ-liệu)
-3. [Cài đặt môi trường](#-cài-đặt-môi-trường)
-4. [Quy trình sử dụng (Pipeline)](#-quy-trình-sử-dụng-pipeline)
-   - [Bước 1: Huấn luyện Baseline (V1)](#bước-1-huấn-luyện-baseline-v1)
-   - [Bước 2: Đánh giá & Lọc câu sai](#bước-2-đánh-giá--lọc-câu-sai)
-   - [Bước 3: Tăng cường dữ liệu (Augmentation)](#bước-3-tăng-cường-dữ-liệu-augmentation)
-   - [Bước 4: Huấn luyện Final (V2)](#bước-4-huấn-luyện-final-v2)
-5. [Các lỗi thường gặp (FAQ)](#-các-lỗi-thường-gặp-faq)
+2. [Kết quả thực nghiệm](#-kết-quả-thực-nghiệm)
+3. [Cấu trúc dữ liệu](#-cấu-trúc-dữ-liệu)
+4. [Cài đặt môi trường](#-cài-đặt-môi-trường)
+5. [Quy trình sử dụng (Pipeline)](#-quy-trình-sử-dụng-pipeline)
+6. [Các lỗi thường gặp (FAQ)](#-các-lỗi-thường-gặp-faq)
 
 ---
 
 ## 🌟 Tính năng nổi bật
+* **Vietnamese Optimized Dual-Models:** Hỗ trợ tinh chỉnh cả 2 kiến trúc phổ biến là `distilbert-base-multilingual-cased` và `vinai/phobert-base`, phù hợp với các bộ dữ liệu Tiếng Việt đa lĩnh vực.
+* **Smart Error-Driven Augmentation:** Tự động lọc câu sai và gọi API (tối ưu hóa với Qwen/Qwen3-32b) để sinh dữ liệu. Tích hợp cơ chế tự động Resume, xử lý lỗi Rate Limit và làm sạch JSON output từ LLM.
 * **Robust JSON Loader:** Tự động nhận diện và xử lý linh hoạt nhiều định dạng dữ liệu (JSON Array, JSONL). Chấp nhận các biến thể key (`choices`/`options`, `answer`/`correct_answer`).
-* **Vietnamese Optimized:** Sử dụng `distilbert-base-multilingual-cased` làm model nền, phù hợp với các bộ dữ liệu Tiếng Việt (Lịch sử, Địa lý, Văn minh...).
-* **Smart Augmentation:** Tool gọi API tích hợp cơ chế tự động Resume, xử lý lỗi Rate Limit và làm sạch JSON output từ LLM.
-* **Safe Serialization:** Lưu trữ model tự động với định dạng `safetensors` an toàn và tối ưu tốc độ.
+* **Safe Serialization:** Lưu trữ model tự động với định dạng `safetensors` an toàn và tối ưu tốc độ load.
+
+---
+
+## 📊 Kết quả thực nghiệm
+[cite_start]Bằng việc áp dụng vòng lặp Active Learning (sinh thêm 4 câu hỏi mới cho mỗi dự đoán sai), mô hình đã đạt được mức tăng trưởng độ chính xác (Accuracy) vô cùng ấn tượng qua 10 lần tăng cường dữ liệu:
+
+| Mô hình | Base (Không tăng cường) | Vòng tăng cường 10 | Mức cải thiện |
+| :--- | :---: | :---: | :---: |
+| **DistilBERT** | [cite_start]68.24%  | [cite_start]**98.68%**  | *+ 30.44%* |
+| **PhoBERT** | [cite_start]63.04%  | [cite_start]**95.54%**  | *+ 32.50%* |
 
 ---
 
 ## 📂 Cấu trúc dữ liệu
 Đầu vào chuẩn của mô hình là một mảng JSON (`train.json`, `val.json`, `test.json`) có định dạng:
-```json
+```
+
+
 [
   {
     "question": "Nền tảng kinh tế cơ bản của Ai Cập cổ đại là?",
@@ -42,6 +52,8 @@ Dự án này cung cấp một quy trình (pipeline) hoàn chỉnh để huấn 
     "answer": "A"
   }
 ]
+
+
 ⚙️ Cài đặt môi trường
 Dự án được tối ưu để chạy trên Google Colab (hoặc môi trường Jupyter Notebook có GPU). Cài đặt các thư viện cần thiết bằng lệnh sau:
 
@@ -58,7 +70,7 @@ Input: train.json (dữ liệu gốc)
 Output: Thư mục chứa model V1 (vd: DistilBERT_FineTuned_QA_Model_V1)
 
 Bước 2: Đánh giá & Lọc câu sai
-Sử dụng model V1 vừa train để làm bài thi trên tập Test (hoặc toàn bộ tập dữ liệu). Trích xuất các câu model đoán sai để phân tích.
+Sử dụng model V1 vừa train để làm bài thi trên tập Test. Trích xuất các câu model đoán sai để phân tích.
 
 Script: evaluation.py
 
@@ -67,22 +79,22 @@ Input: Model V1 + Dữ liệu Test.
 Output: Báo cáo Accuracy/F1 và file wrong_answers_v1.jsonl.
 
 Bước 3: Tăng cường dữ liệu (Augmentation)
-Dùng LLM (thông qua API của Groq) để đọc các câu hỏi model V1 làm sai, từ đó sinh ra các câu hỏi biến thể mới (đổi cách hỏi, đổi ngữ cảnh) để lấp lỗ hổng kiến thức.
+Dùng LLM API (Qwen-32b/Groq) đọc các câu hỏi model làm sai, từ đó sinh ra các câu hỏi biến thể mới để lấp lỗ hổng kiến thức (tỷ lệ 1 câu sai sinh 4 câu mới).
 
-Script: groq_data_generator.py
+Script: llm_data_generator.py
 
 Input: wrong_answers_v1.jsonl
 
-Output: generated_data_new_errors.jsonl (File chứa các câu hỏi mới).
+Output: generated_data_new_errors.jsonl
 
 Bước 4: Huấn luyện Final (All-in-One / V2)
-Gộp toàn bộ dữ liệu gốc (train, val, test) và dữ liệu sinh thêm (generated) vào một tập Train duy nhất. Huấn luyện model trên khối dữ liệu đồ sộ này để đạt hiệu suất tối đa.
+Gộp toàn bộ dữ liệu gốc (train, val, test) và dữ liệu sinh thêm (generated) vào một tập Train duy nhất. Huấn luyện model trên khối dữ liệu đồ sộ này để tối đa hóa hiệu suất.
 
 Script: train_v2_all_in_one.py
 
 Input: Model V1 (Làm base) + Gộp tất cả JSON & JSONL.
 
-Output: Thư mục Model Final (DistilBERT_FineTuned_QA_Model_Final).
+Output: Thư mục Model Final.
 
 ❓ Các lỗi thường gặp (FAQ)
 1. Code chạy xong báo lưu thành công nhưng không thấy file model.safetensors trên Drive?
@@ -95,7 +107,7 @@ Cách xử lý: Code vẫn hoạt động bình thường với pytorch_model.bi
 
 Nguyên nhân: LLM sinh ra định dạng text không chuẩn JSON (lẫn Markdown, text thừa).
 
-Cách xử lý: Script groq_data_generator.py đã tích hợp sẵn hàm clean_json_string() sử dụng Regex để bắt lỗi này. Hãy giữ Batch Size ở mức nhỏ (3-5) để giảm tỷ lệ lỗi cú pháp của model.
+Cách xử lý: Script generator đã tích hợp sẵn hàm clean_json_string() sử dụng Regex để bắt lỗi này. Hãy giữ Batch Size ở mức nhỏ (3-5) để giảm tỷ lệ lỗi cú pháp của model.
 
 3. Lỗi ImportError: cannot import name 'GenerationMixin' trên Colab?
 

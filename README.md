@@ -1,0 +1,104 @@
+# 🚀 DistilBERT Multiple Choice QA - Vietnamese Fine-Tuning Pipeline
+
+Dự án này cung cấp một quy trình (pipeline) hoàn chỉnh để huấn luyện (fine-tune), đánh giá và tăng cường dữ liệu (data augmentation) cho mô hình **DistilBERT** trong bài toán **Trả lời câu hỏi trắc nghiệm (Multiple Choice QA)** bằng tiếng Việt.
+
+Đặc biệt, dự án bao gồm cơ chế **"Tự học từ lỗi sai" (Error-Driven Augmentation)**: Model thi thử -> Lọc ra các câu làm sai -> Dùng LLM (Groq/Llama/Kimi) sinh thêm câu hỏi tương tự từ lỗi sai -> Huấn luyện lại model (V2/Final) để vá lỗ hổng kiến thức.
+
+---
+
+## 📑 Mục lục
+1. [Tính năng nổi bật](#-tính-năng-nổi-bật)
+2. [Cấu trúc dữ liệu](#-cấu-trúc-dữ-liệu)
+3. [Cài đặt môi trường](#-cài-đặt-môi-trường)
+4. [Quy trình sử dụng (Pipeline)](#-quy-trình-sử-dụng-pipeline)
+   - [Bước 1: Huấn luyện Baseline (V1)](#bước-1-huấn-luyện-baseline-v1)
+   - [Bước 2: Đánh giá & Lọc câu sai](#bước-2-đánh-giá--lọc-câu-sai)
+   - [Bước 3: Tăng cường dữ liệu (Augmentation)](#bước-3-tăng-cường-dữ-liệu-augmentation)
+   - [Bước 4: Huấn luyện Final (V2)](#bước-4-huấn-luyện-final-v2)
+5. [Các lỗi thường gặp (FAQ)](#-các-lỗi-thường-gặp-faq)
+
+---
+
+## 🌟 Tính năng nổi bật
+* **Robust JSON Loader:** Tự động nhận diện và xử lý linh hoạt nhiều định dạng dữ liệu (JSON Array, JSONL). Chấp nhận các biến thể key (`choices`/`options`, `answer`/`correct_answer`).
+* **Vietnamese Optimized:** Sử dụng `distilbert-base-multilingual-cased` làm model nền, phù hợp với các bộ dữ liệu Tiếng Việt (Lịch sử, Địa lý, Văn minh...).
+* **Smart Augmentation:** Tool gọi API tích hợp cơ chế tự động Resume, xử lý lỗi Rate Limit và làm sạch JSON output từ LLM.
+* **Safe Serialization:** Lưu trữ model tự động với định dạng `safetensors` an toàn và tối ưu tốc độ.
+
+---
+
+## 📂 Cấu trúc dữ liệu
+Đầu vào chuẩn của mô hình là một mảng JSON (`train.json`, `val.json`, `test.json`) có định dạng:
+```json
+[
+  {
+    "question": "Nền tảng kinh tế cơ bản của Ai Cập cổ đại là?",
+    "choices": [
+      "A. Nông nghiệp",
+      "B. Thương nghiệp",
+      "C. Thủ công nghiệp",
+      "D. Du lịch"
+    ],
+    "answer": "A"
+  }
+]
+⚙️ Cài đặt môi trường
+Dự án được tối ưu để chạy trên Google Colab (hoặc môi trường Jupyter Notebook có GPU). Cài đặt các thư viện cần thiết bằng lệnh sau:
+
+Bash
+pip install transformers torch scikit-learn pandas accelerate groq tqdm safetensors
+🚀 Quy trình sử dụng (Pipeline)
+Bước 1: Huấn luyện Baseline (V1)
+Chạy script Training cơ bản với 3 file train.json, val.json, test.json.
+
+Script: train_v1.py
+
+Input: train.json (dữ liệu gốc)
+
+Output: Thư mục chứa model V1 (vd: DistilBERT_FineTuned_QA_Model_V1)
+
+Bước 2: Đánh giá & Lọc câu sai
+Sử dụng model V1 vừa train để làm bài thi trên tập Test (hoặc toàn bộ tập dữ liệu). Trích xuất các câu model đoán sai để phân tích.
+
+Script: evaluation.py
+
+Input: Model V1 + Dữ liệu Test.
+
+Output: Báo cáo Accuracy/F1 và file wrong_answers_v1.jsonl.
+
+Bước 3: Tăng cường dữ liệu (Augmentation)
+Dùng LLM (thông qua API của Groq) để đọc các câu hỏi model V1 làm sai, từ đó sinh ra các câu hỏi biến thể mới (đổi cách hỏi, đổi ngữ cảnh) để lấp lỗ hổng kiến thức.
+
+Script: groq_data_generator.py
+
+Input: wrong_answers_v1.jsonl
+
+Output: generated_data_new_errors.jsonl (File chứa các câu hỏi mới).
+
+Bước 4: Huấn luyện Final (All-in-One / V2)
+Gộp toàn bộ dữ liệu gốc (train, val, test) và dữ liệu sinh thêm (generated) vào một tập Train duy nhất. Huấn luyện model trên khối dữ liệu đồ sộ này để đạt hiệu suất tối đa.
+
+Script: train_v2_all_in_one.py
+
+Input: Model V1 (Làm base) + Gộp tất cả JSON & JSONL.
+
+Output: Thư mục Model Final (DistilBERT_FineTuned_QA_Model_Final).
+
+❓ Các lỗi thường gặp (FAQ)
+1. Code chạy xong báo lưu thành công nhưng không thấy file model.safetensors trên Drive?
+
+Nguyên nhân: Có thể do Google Drive đồng bộ chậm, hoặc môi trường thiếu thư viện safetensors nên model đã được lưu dưới định dạng cũ là pytorch_model.bin.
+
+Cách xử lý: Code vẫn hoạt động bình thường với pytorch_model.bin. Nếu muốn ép lưu safetensors, hãy đảm bảo đã chạy pip install safetensors và dùng tham số safe_serialization=True khi gọi hàm save_pretrained. Luôn đợi 1-2 phút trước khi tắt Colab để Drive kịp đồng bộ.
+
+2. Quá trình sinh dữ liệu bằng API báo lỗi JSONDecodeError liên tục?
+
+Nguyên nhân: LLM sinh ra định dạng text không chuẩn JSON (lẫn Markdown, text thừa).
+
+Cách xử lý: Script groq_data_generator.py đã tích hợp sẵn hàm clean_json_string() sử dụng Regex để bắt lỗi này. Hãy giữ Batch Size ở mức nhỏ (3-5) để giảm tỷ lệ lỗi cú pháp của model.
+
+3. Lỗi ImportError: cannot import name 'GenerationMixin' trên Colab?
+
+Nguyên nhân: Xung đột thư viện transformers do chưa load lại phiên bản mới sau khi cài đặt.
+
+Cách xử lý: Vào thanh menu Colab: Runtime -> Restart session. Sau đó chạy lại ô import thư viện.

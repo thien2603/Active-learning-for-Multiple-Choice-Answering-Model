@@ -1,0 +1,6 @@
+Transition,Errors_Start,Errors_End,Fixed,Regression,Persistent,Trend
+PhoBert_FineTuned_QA_Model -> PhoBert_FineTuned_QA_Model_V2_Final,2691,2783,787,879,1904,KÉM ĐI 📉
+PhoBert_FineTuned_QA_Model_V2_Final -> PhoBert_FineTuned_QA_Model_V3,2783,3025,321,563,2462,KÉM ĐI 📉
+PhoBert_FineTuned_QA_Model_V3 -> PhoBert_FineTuned_QA_Model_V6,3025,2218,1267,460,1758,TỐT LÊN 📈
+PhoBert_FineTuned_QA_Model_V6 -> PhoBert_FineTuned_QA_Model_V7_Final,2218,1418,1076,276,1142,TỐT LÊN 📈
+PhoBert_FineTuned_QA_Model_V7_Final -> PhoBert_FineTuned_QA_Model_V8,1418,1407,612,601,806,TỐT LÊN 📈

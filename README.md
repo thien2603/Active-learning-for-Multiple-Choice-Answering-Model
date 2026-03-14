@@ -37,8 +37,6 @@ Dự án này cung cấp một quy trình (pipeline) hoàn chỉnh để huấn 
 
 ## 📂 Cấu trúc dữ liệu
 Đầu vào chuẩn của mô hình là một mảng JSON (`train.json`, `val.json`, `test.json`) có định dạng:
-```
-
 
 [
   {
@@ -53,7 +51,7 @@ Dự án này cung cấp một quy trình (pipeline) hoàn chỉnh để huấn 
   }
 ]
 
-
+---
 ⚙️ Cài đặt môi trường
 Dự án được tối ưu để chạy trên Google Colab (hoặc môi trường Jupyter Notebook có GPU). Cài đặt các thư viện cần thiết bằng lệnh sau:
 
@@ -114,3 +112,7 @@ Cách xử lý: Script generator đã tích hợp sẵn hàm clean_json_string()
 Nguyên nhân: Xung đột thư viện transformers do chưa load lại phiên bản mới sau khi cài đặt.
 
 Cách xử lý: Vào thanh menu Colab: Runtime -> Restart session. Sau đó chạy lại ô import thư viện.
+```
+
+
+
